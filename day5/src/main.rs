@@ -37,7 +37,13 @@ fn main() -> io::Result<()> {
         .filter(|pages| rules.is_match(pages))
         .collect();
 
-    println!("Matched updated: {:?}", matched_updates);
+    // Sum the middle page from each of the matched_updates
+    let middle_sum: u32 = matched_updates.iter()
+        .map(|pages| pages[pages.len() / 2])
+        .sum();
+
+    println!("Matched updates: {:?}", matched_updates);
+    println!("Sum of middle pages: {}", middle_sum);
 
     Ok(())
 }
