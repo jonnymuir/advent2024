@@ -1,6 +1,9 @@
+mod rules;
+
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
+use rules::Rules;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -20,21 +23,11 @@ fn main() -> io::Result<()> {
     let blank_line_index = lines.iter().position(|line| line.trim().is_empty()).expect("No blank line found");
 
     // Split the vector into two slices
-    let rules = &lines[..blank_line_index];
-    let pages = &lines[blank_line_index + 1..];
-
-    // Parse the rules into a vector of tuples
-    let parsed_rules: Vec<(u32, u32)> = rules.iter()
-        .map(|line| {
-            let parts: Vec<&str> = line.split('|').collect();
-            let x = parts[0].parse::<u32>().expect("Invalid number");
-            let y = parts[1].parse::<u32>().expect("Invalid number");
-            (x, y)
-        })
-        .collect();
+    let rules = Rules::from_lines(&lines[..blank_line_index]);
+    let pages_lines = &lines[blank_line_index + 1..];
 
     // Parse the pages into a vector of vectors
-    let parsed_pages: Vec<Vec<u32>> = pages.iter()
+    let parsed_pages: Vec<Vec<u32>> = pages_lines.iter()
         .map(|line| {
             line.split(',')
                 .map(|num| num.trim().parse::<u32>().expect("Invalid number"))
@@ -43,7 +36,7 @@ fn main() -> io::Result<()> {
         .collect();
 
     // Debug print to verify the split and parsing
-    println!("Parsed Rules: {:?}", parsed_rules);
+    println!("Parsed Rules: {}", rules);
     println!("Parsed Pages: {:?}", parsed_pages);
 
     Ok(())
