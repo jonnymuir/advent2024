@@ -1,4 +1,5 @@
 mod rules;
+mod rule;
 
 use std::env;
 use std::fs::File;
@@ -26,18 +27,17 @@ fn main() -> io::Result<()> {
     let rules = Rules::from_lines(&lines[..blank_line_index]);
     let pages_lines = &lines[blank_line_index + 1..];
 
-    // Parse the pages into a vector of vectors
-    let parsed_pages: Vec<Vec<u32>> = pages_lines.iter()
+    // Loop through each set of pages and see if they match the rules
+    let matched_updates: Vec<Vec<u32>> = pages_lines.iter()
         .map(|line| {
             line.split(',')
                 .map(|num| num.trim().parse::<u32>().expect("Invalid number"))
-                .collect()
+                .collect::<Vec<u32>>()
         })
+        .filter(|pages| rules.is_match(pages))
         .collect();
 
-    // Debug print to verify the split and parsing
-    println!("Parsed Rules: {}", rules);
-    println!("Parsed Pages: {:?}", parsed_pages);
+    println!("Matched updated: {:?}", matched_updates);
 
     Ok(())
 }
