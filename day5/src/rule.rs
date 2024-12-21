@@ -23,6 +23,31 @@ impl Rule {
             None => true,
         }
     }
+
+    pub fn correct(&self, pages: &Vec<u32>) -> Vec<u32> {
+        // If we aren't correct then swap the x and y values
+        match pages.iter().position(|&page| page == self.x) {
+            Some(xpos) => match pages.iter().position(|&page| page == self.y) {
+                Some(ypos) => {
+                    if xpos < ypos {
+                        pages.clone()
+                    } else {
+                        pages.iter().enumerate().map(|(i, &page)| {
+                            if i == xpos {
+                                self.y
+                            } else if i == ypos {
+                                self.x
+                            } else {
+                                page
+                            }
+                        }).collect()
+                    }
+                },
+                None => pages.clone(),
+            },
+            None => pages.clone(),
+        }
+    }
 }
 
 impl fmt::Display for Rule {
@@ -34,6 +59,8 @@ impl fmt::Display for Rule {
 
 #[cfg(test)]
 mod tests {
+    use std::vec;
+
     use super::*;
 
     #[test]
@@ -63,4 +90,14 @@ mod tests {
         let pages = vec![3, 4, 5];
         assert!(rule.is_match(&pages));
     }
+
+    #[test]
+    fn test_rule_correct_when_not_matching() {
+        let rule = Rule { x: 1, y: 2 };
+        let pages = vec![2, 1];
+        let corrected_pages = rule.correct(&pages);
+        assert_eq!(corrected_pages, vec![1, 2]);
+    }
+
+
 }

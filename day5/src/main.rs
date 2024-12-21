@@ -1,10 +1,10 @@
-mod rules;
 mod rule;
+mod rules;
 
+use rules::Rules;
 use std::env;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader};
-use rules::Rules;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
@@ -21,29 +21,37 @@ fn main() -> io::Result<()> {
     let lines: Vec<String> = reader.lines().collect::<Result<Vec<_>, _>>()?;
 
     // Find the index of the blank line
-    let blank_line_index = lines.iter().position(|line| line.trim().is_empty()).expect("No blank line found");
+    let blank_line_index = lines
+        .iter()
+        .position(|line| line.trim().is_empty())
+        .expect("No blank line found");
 
     // Split the vector into two slices
     let rules = Rules::from_lines(&lines[..blank_line_index]);
     let pages_lines = &lines[blank_line_index + 1..];
 
     // Loop through each set of pages and see if they match the rules
-    let matched_updates: Vec<Vec<u32>> = pages_lines.iter()
-        .map(|line| {
-            line.split(',')
-                .map(|num| num.trim().parse::<u32>().expect("Invalid number"))
-                .collect::<Vec<u32>>()
-        })
-        .filter(|pages| rules.is_match(pages))
-        .collect();
+    let updates = pages_lines.iter().map(|line| {
+        line.split(',')
+            .map(|num| num.trim().parse::<u32>().expect("Invalid number"))
+            .collect::<Vec<u32>>()
+    });
+
+    let matched_updates = updates.clone().filter(|pages| rules.is_match(pages));
 
     // Sum the middle page from each of the matched_updates
-    let middle_sum: u32 = matched_updates.iter()
+    let matched_middle_sum: u32 = matched_updates.map(|pages| pages[pages.len() / 2]).sum();
+
+    println!("Sum of matched middle pages: {}", matched_middle_sum);
+
+    let unmatched_updates = updates.clone().filter(|pages| !rules.is_match(pages));
+
+    let unmatched_middle_sum: u32 = unmatched_updates
+        .map(|pages| rules.correct(&pages))
         .map(|pages| pages[pages.len() / 2])
         .sum();
 
-    println!("Matched updates: {:?}", matched_updates);
-    println!("Sum of middle pages: {}", middle_sum);
+    println!("Sum of corrected middle pages: {}", unmatched_middle_sum);
 
     Ok(())
 }
