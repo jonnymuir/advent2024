@@ -3,6 +3,7 @@ use std::fmt;
 
 pub enum TravelResult {
     OutOfBounds,
+    InfinitePath,
     GuardMoved(Guard),
 }
 
@@ -69,8 +70,8 @@ impl Guard {
         let new_position = self.direction.apply(self.position);
 
         // Test for collision - if we collide rotate 90 degrees clockwise otherwise move
-        match map.board[new_position.1].chars().nth(new_position.0) {
-            Some('#') => TravelResult::GuardMoved(Guard {
+        let new_guard = match map.board[new_position.1].chars().nth(new_position.0) {
+            Some('#') => Guard {
                 position: self.position,
                 direction: self.direction.rotate90(),
                 path: [
@@ -78,13 +79,24 @@ impl Guard {
                     vec![(self.position, self.direction.rotate90())],
                 ]
                 .concat(),
-            }),
-            _ => TravelResult::GuardMoved(Guard {
+            },
+            _ => Guard {
                 position: new_position,
                 direction: self.direction,
                 path: [self.path.clone(), vec![(new_position, self.direction)]].concat(),
-            }),
-        }
+            },
+        };
+
+        // Test for infinite path
+        if self
+            .path
+            .iter()
+            .any(|(pos, direction)| *pos == new_guard.position && *direction == new_guard.direction)
+        {
+            return TravelResult::InfinitePath;
+        };
+
+        TravelResult::GuardMoved(new_guard)
     }
 }
 
@@ -175,6 +187,30 @@ mod tests {
 
                 assert_eq!(new_guard.position, (0, 1));
                 assert_eq!(new_guard.direction, Direction::East);
+            }
+            _ => panic!("Expected a guard"),
+        }
+    }
+    #[test]
+    fn test_infinite_path() {
+        match Map::from_lines(vec![
+            String::from("###"),
+            String::from("#<#"),
+            String::from("###"),
+        ]) {
+            (Some(guard), map) => {
+                let result = std::iter::successors(Some(guard), |g| match g.travel(&map) {
+                    TravelResult::GuardMoved(new_guard) => Some(new_guard),
+                    _ => None,
+                })
+                .last()
+                .map(|g| g.travel(&map))
+                .unwrap();
+
+                assert!(
+                    matches!(result, TravelResult::InfinitePath),
+                    "Expected TravelResult::InfinitePath"
+                );
             }
             _ => panic!("Expected a guard"),
         }
