@@ -1,6 +1,7 @@
 mod guard;
 mod map;
 
+use guard::{Guard, TravelError};
 use map::Map;
 
 use std::env;
@@ -19,10 +20,19 @@ fn main() -> io::Result<()> {
     let reader = BufReader::new(file);
 
     // Read all lines from the file and create a map from them
-    let (guard, map) = Map::from_lines(reader.lines().collect::<Result<Vec<_>, _>>()?);
- 
-    println!("{}", guard);
-    println!("{}", map);
+    match  Map::from_lines(reader.lines().collect::<Result<Vec<_>, _>>()?) {
+        (Some(guard), map) => {
+            let final_guard = travel_until_out_of_bounds(guard, &map);
+            println!("Visited {} unique locations", final_guard.unique_path_count());
+            Ok(())
+        }
+        _ => panic!("Expected a guard"),
+    }
+}
 
-    Ok(())
+fn travel_until_out_of_bounds(guard: Guard, map: &Map) -> Guard {
+    match guard.travel(map) {
+        Ok(new_guard) => travel_until_out_of_bounds(new_guard, map),
+        Err(TravelError::OutOfBounds) => guard
+    }
 }
