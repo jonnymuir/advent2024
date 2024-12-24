@@ -57,6 +57,14 @@ impl Guard {
             .len()
     }
 
+    pub fn rotate90(&self) -> Guard {
+        Guard {
+            position: self.position,
+            direction: self.direction.rotate90(),
+            path: [self.path.clone(), vec![(self.position, self.direction.rotate90())]].concat()
+        }
+    }
+
     pub fn travel(&self, map: &Map) -> TravelResult {
         // Test in bounds
         if self.position.0 == 0 && self.direction == Direction::West
@@ -152,6 +160,18 @@ mod tests {
                 }
                 _ => panic!("Expected TravelResult::GuardMoved"),
             },
+            _ => panic!("Expected a guard"),
+        }
+    }
+
+    #[test]
+    fn test_guard_rotate90() {
+        match Map::from_lines(vec![String::from("<")]) {
+            (Some(guard), _) => {
+                let new_guard = guard.rotate90();
+                assert_eq!(new_guard.position, (0, 0));
+                assert_eq!(new_guard.direction, Direction::North);
+            }
             _ => panic!("Expected a guard"),
         }
     }
