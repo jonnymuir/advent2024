@@ -20,22 +20,29 @@ fn main() -> io::Result<()> {
     let reader = BufReader::new(file);
 
     // Read all lines from the file and create a map from them
-    match  Map::from_lines(reader.lines().collect::<Result<Vec<_>, _>>()?) {
+    match Map::from_lines(reader.lines().collect::<Result<Vec<_>, _>>()?) {
         (Some(guard), map) => {
-            println!("Visited {} unique locations", travel_until_done(&guard, &map));
+            println!(
+                "Visited {} unique locations",
+                travel_until_done(&guard, &map)
+            );
 
-            // And then use the guard to find out how many of them would 
+            // And then use the guard to find out how many of them would
             // head to an infinite path it they where rotated by 90%
             let infinite_paths = std::iter::successors(Some(guard), |g| match g.travel(&map) {
                 TravelResult::GuardMoved(new_guard) => Some(new_guard),
                 _ => None,
-            }).enumerate()
+            })
+            .enumerate()
             .inspect(|(i, _)| println!("Checking guard {}", i))
-            .map(|(_, g)| is_on_infinite_path(&g.rotate90(), &map))
+            .map(|(_, g)| is_on_infinite_path(&g, &g.block_infront_of(&map)))
             .filter(|&b| b)
             .count();
-            
-            println!("{} of them would lead to an infinite path if rotated by 90%", infinite_paths);
+
+            println!(
+                "{} of them would lead to an infinite path if rotated by 90%",
+                infinite_paths
+            );
 
             Ok(())
         }
@@ -54,6 +61,6 @@ fn is_on_infinite_path(guard: &Guard, map: &Map) -> bool {
     match guard.travel(map) {
         TravelResult::GuardMoved(new_guard) => is_on_infinite_path(&new_guard, map),
         TravelResult::InfinitePath => true,
-        TravelResult::OutOfBounds => false
+        TravelResult::OutOfBounds => false,
     }
 }

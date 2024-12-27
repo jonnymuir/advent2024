@@ -57,14 +57,6 @@ impl Guard {
             .len()
     }
 
-    pub fn rotate90(&self) -> Guard {
-        Guard {
-            position: self.position,
-            direction: self.direction.rotate90(),
-            path: [self.path.clone(), vec![(self.position, self.direction.rotate90())]].concat()
-        }
-    }
-
     pub fn travel(&self, map: &Map) -> TravelResult {
         // Test in bounds
         if self.position.0 == 0 && self.direction == Direction::West
@@ -105,6 +97,25 @@ impl Guard {
         };
 
         TravelResult::GuardMoved(new_guard)
+    }
+
+    pub fn block_infront_of(&self, map: &Map) -> Map {
+        let new_position = self.direction.apply(self.position);
+        let new_board: Vec<String> = map.board.iter().enumerate().map(|(y, row)| {
+            if y == new_position.1 {
+                let (start, end) = row.split_at(new_position.0);
+                let end = &end[1..]; // Skip the character at new_position.0
+                format!("{}#{}", start, end)
+            } else {
+                row.clone()
+            }
+        }).collect();
+    
+        Map {
+            board: new_board,
+            width: map.width,
+            height: map.height,
+        }
     }
 }
 
@@ -165,18 +176,6 @@ mod tests {
     }
 
     #[test]
-    fn test_guard_rotate90() {
-        match Map::from_lines(vec![String::from("<")]) {
-            (Some(guard), _) => {
-                let new_guard = guard.rotate90();
-                assert_eq!(new_guard.position, (0, 0));
-                assert_eq!(new_guard.direction, Direction::North);
-            }
-            _ => panic!("Expected a guard"),
-        }
-    }
-
-    #[test]
     fn test_guard_moves_count_is_unique() {
         match Map::from_lines(vec![String::from("###"), String::from("#.<")]) {
             (Some(guard), map) => {
@@ -231,6 +230,19 @@ mod tests {
                     matches!(result, TravelResult::InfinitePath),
                     "Expected TravelResult::InfinitePath"
                 );
+            }
+            _ => panic!("Expected a guard"),
+        }
+    }
+
+    #[test]
+    fn test_block_infront_of() {
+        match Map::from_lines(vec![
+            String::from(".<"),
+        ]) {
+            (Some(guard), map) => {
+                let new_map = guard.block_infront_of(&map);
+                assert_eq!(new_map.board, vec![String::from("#<")]);
             }
             _ => panic!("Expected a guard"),
         }
